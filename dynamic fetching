@@ -1,0 +1,92 @@
+# Import required libraries
+import teradatasql
+from langchain.prompts import PromptTemplate
+from ollama import Ollama
+import pandas as pd
+
+# Step 1: Predefined query template
+query_template = """
+SELECT customer_id, customer_name, customer_email, customer_address
+FROM customer_table
+WHERE {where_clause};
+"""
+
+# Step 2: Function to connect to Teradata
+def connect_to_teradata():
+    try:
+        conn = teradatasql.connect(
+            host="your_teradata_host",     # Replace with your Teradata host
+            user="your_username",          # Replace with your Teradata username
+            password="your_password"       # Replace with your Teradata password
+        )
+        print("Connection established successfully!")
+        return conn
+    except Exception as e:
+        print(f"Error connecting to Teradata: {e}")
+        return None
+
+# Step 3: Function to generate WHERE clause using Ollama's Gemini model
+def generate_where_clause(user_input):
+    # Create a prompt template for generating the WHERE clause
+    prompt_template = PromptTemplate(
+        template="Given the user input: '{input}', generate a WHERE clause to fetch customer details."
+    )
+    
+    # Format the prompt using the user input
+    prompt = prompt_template.format(input=user_input)
+    
+    # Use the Ollama model to generate the WHERE clause
+    model = Ollama(model="gemini")
+    response = model.generate(prompt)
+    
+    # Return the generated WHERE clause
+    return response['text']
+
+# Step 4: Function to execute SQL query on Teradata
+def execute_query(conn, query):
+    try:
+        with conn.cursor() as cur:
+            cur.execute(query)
+            rows = cur.fetchall()
+            
+            # Create a pandas DataFrame from the fetched rows
+            df = pd.DataFrame(rows, columns=['customer_id', 'customer_name', 'customer_email', 'customer_address'])
+            return df
+    except Exception as e:
+        print(f"Error executing query: {e}")
+        return None
+
+# Step 5: Main function to tie everything together
+def fetch_customer_details(user_input):
+    # Step 1: Connect to Teradata
+    conn = connect_to_teradata()
+    if not conn:
+        return None
+    
+    # Step 2: Generate the dynamic WHERE clause based on user input
+    where_clause = generate_where_clause(user_input)
+    
+    # Step 3: Substitute the WHERE clause into the query template
+    query = query_template.format(where_clause=where_clause)
+    
+    print(f"Running query: {query}")
+    
+    # Step 4: Execute the query and return the results as a pandas DataFrame
+    df = execute_query(conn, query)
+    
+    # Step 5: Close the connection
+    conn.close()
+    
+    return df
+
+# Example user input
+user_input = "fetch customer details where customer is from California and has email ending with '@gmail.com'"
+
+# Fetch the customer details based on user input
+df = fetch_customer_details(user_input)
+
+# Step 6: Display the resulting DataFrame
+if df is not None:
+    print(df)
+else:
+    print("No data returned or an error occurred.")
