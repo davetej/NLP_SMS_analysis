@@ -1,0 +1,30 @@
+from langchain.llms import Ollama
+from langchain.chains import ConversationChain
+from langchain.memory import ConversationBufferMemory
+
+# Step 1: Initialize the Llama 3.1 model using Ollama
+llama_llm = Ollama(model="llama3.1")
+
+# Step 2: Set up memory to store conversation history
+memory = ConversationBufferMemory()
+
+# Step 3: Set up the ConversationChain with memory
+conversation_chain = ConversationChain(
+    llm=llama_llm,
+    memory=memory
+)
+
+# Step 4: Chatbot loop to interact with the user
+def chat():
+    print("Chatbot is running. Type 'exit' to stop.")
+    while True:
+        user_input = input("You: ")
+        if user_input.lower() == "exit":
+            print("Goodbye!")
+            break
+        # Generate a response using the conversation chain
+        response = conversation_chain.run(user_input)
+        print(f"Bot: {response}")
+
+# Start the chatbot
+chat()
