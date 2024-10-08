@@ -1,0 +1,65 @@
+from langchain import LLMChain, PromptTemplate
+from langchain.llms import Ollama
+import pandas as pd
+import json
+
+# Initialize Llama 3.2 model (assuming Llama is installed)
+llm = Ollama(model="llama3.1")
+
+# Define prompt for information extraction
+template = """
+Extract the following information from the input text and Strictly JSON Output of Extract Info. No Additional Information: 
+1. Customer Name
+2. Product/Service
+3. Count
+
+Input: {input_text}
+
+
+Action:
+
+
+  {{
+    "Customer Name": "<Customer_Name>",
+    "Product/Service": "<Product_Name>",
+    "Count": <Product Count>
+  }},
+  .
+  .
+  .
+  {{
+    "Customer Name": "<Customer_Name>",
+    "Product/Service": "<Product_Name>",
+    "Count": <Product Count>
+  }}
+
+'''
+"""
+
+prompt = PromptTemplate(input_variables=["input_text"], template=template)
+
+# Create a LangChain pipeline with Llama
+chain = LLMChain(llm=llm, prompt=prompt)
+
+# Example user input text
+input_text = "Alice ordered 2 Internet services and Bob ordered 1 TV service."
+
+# Generate extraction result
+response = chain.run(input_text)
+print(response)
+
+# Assume the response is in JSON format (you can parse it directly)
+# Example response: '{"data": [{"Customer": "Alice", "Product": "Internet", "Count": 2}, {"Customer": "Bob", "Product": "TV", "Count": 1}]}'
+# For now, let's assume the Llama 3.2 output is a valid JSON string:
+json_response = response.strip()  # Clean any extra spaces or newlines
+
+# Convert JSON string to Python dict
+data_dict = json.loads(json_response)
+
+# Convert extracted data into a DataFrame
+df = pd.DataFrame(data_dict["data"])
+
+# Display the DataFrame
+print(df)
+
+using langchain jsonoutput parser only generate json output
